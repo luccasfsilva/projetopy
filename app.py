@@ -3,117 +3,348 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 from datetime import datetime
 import warnings
-import pycountry # Adicionado: Necessário para o mapa mundi no Plotly
+import pycountry
+
 warnings.filterwarnings('ignore')
 
 # =========================
-# CONFIGURAÇÃO DA PÁGINA
+# CONFIGURAÇÃO INICIAL
 # =========================
 st.set_page_config(
-    page_title="CineAnalytics ",
+    page_title="CineAnalytics Pro",
     page_icon="🎬",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"  # Sidebar fechada por padrão para mais espaço
 )
 
 # =========================
-# ESTILOS CSS PERSONALIZADOS
+# CSS MODERNO 2026
 # =========================
 st.markdown("""
 <style>
-    .main-header {
-        font-size: 3.5rem;
-        background: linear-gradient(90deg, #FF6B6B, #4ECDC4, #45B7D1, #FFA726);
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    
+    * {
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+    
+    .stApp {
+        background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+    }
+    
+    /* Hero Section */
+    .hero-container {
+        text-align: center;
+        padding: 3rem 1rem 2rem;
+        background: linear-gradient(180deg, rgba(78,205,196,0.1) 0%, transparent 100%);
+        border-radius: 0 0 40px 40px;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .hero-container::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(78,205,196,0.03) 0%, transparent 70%);
+        animation: pulse 8s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); opacity: 0.5; }
+        50% { transform: scale(1.1); opacity: 1; }
+    }
+    
+    .hero-title {
+        font-size: 4rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #FF6B6B 0%, #4ECDC4 50%, #45B7D1 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        text-align: center;
-        margin-bottom: 1rem;
-        font-weight: 800;
+        background-clip: text;
+        margin-bottom: 0.5rem;
+        letter-spacing: -2px;
+        position: relative;
+        z-index: 1;
     }
-    .sub-header {
-        font-size: 1.2rem;
-        color: #8f8f8f;
-        text-align: center;
-        margin-bottom: 2rem;
+    
+    .hero-subtitle {
+        font-size: 1.1rem;
+        color: rgba(255,255,255,0.6);
+        font-weight: 300;
+        letter-spacing: 1px;
+        position: relative;
+        z-index: 1;
     }
-    .metric-card {
-        background: linear-gradient(135deg, #2c3e50, #34495e);
+    
+    /* Glass Cards */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 24px;
         padding: 1.5rem;
-        border-radius: 15px;
-        border-left: 5px solid #4ECDC4;
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-        color: white;
-        height: 100%;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
     }
-    .section-header {
-        font-size: 1.5rem;
+    
+    .glass-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(78,205,196,0.5), transparent);
+    }
+    
+    .glass-card:hover {
+        transform: translateY(-4px);
+        border-color: rgba(78, 205, 196, 0.3);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    }
+    
+    /* Metric Cards */
+    .metric-glass {
+        background: linear-gradient(135deg, rgba(78,205,196,0.1) 0%, rgba(69,183,209,0.05) 100%);
+        border-left: 3px solid #4ECDC4;
+    }
+    
+    .metric-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #fff;
+        line-height: 1;
+    }
+    
+    .metric-label {
+        font-size: 0.85rem;
+        color: rgba(255,255,255,0.5);
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        margin-top: 0.5rem;
+    }
+    
+    .metric-delta {
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-top: 0.3rem;
+    }
+    
+    /* Section Headers */
+    .section-title {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #fff;
+        margin: 2rem 0 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .section-title::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(90deg, rgba(78,205,196,0.3), transparent);
+        margin-left: 1rem;
+    }
+    
+    /* Custom Tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+        background: rgba(255,255,255,0.02);
+        padding: 8px;
+        border-radius: 16px;
+        border: 1px solid rgba(255,255,255,0.05);
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        background: transparent;
+        border-radius: 12px;
+        color: rgba(255,255,255,0.5);
+        font-weight: 500;
+        border: none;
+        padding: 0.6rem 1.2rem;
+        transition: all 0.3s ease;
+    }
+    
+    .stTabs [data-baseweb="tab"]:hover {
+        color: #fff;
+        background: rgba(255,255,255,0.05);
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, rgba(78,205,196,0.2), rgba(69,183,209,0.1)) !important;
+        color: #4ECDC4 !important;
+        box-shadow: 0 4px 15px rgba(78,205,196,0.1);
+    }
+    
+    /* Sidebar Modern */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 100%);
+        border-right: 1px solid rgba(255,255,255,0.05);
+    }
+    
+    [data-testid="stSidebar"] .stMarkdown h2 {
         color: #4ECDC4;
-        margin: 1.5rem 0 1rem 0;
-        padding-bottom: 0.5rem;
-        border-bottom: 2px solid #34495e;
+        font-weight: 700;
+        font-size: 1.3rem;
     }
-    .chart-container {
-        background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
-        padding: 1.5rem;
-        border-radius: 10px;
-        margin: 1rem 0;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    
+    /* Slider Modern */
+    .stSlider > div > div > div {
+        background: rgba(255,255,255,0.1) !important;
+    }
+    
+    /* Buttons */
+    .stButton > button {
+        background: linear-gradient(135deg, #4ECDC4, #45B7D1);
+        color: #0f0f1a;
+        font-weight: 600;
+        border: none;
+        border-radius: 12px;
+        padding: 0.6rem 1.5rem;
+        transition: all 0.3s ease;
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 30px rgba(78,205,196,0.3);
+    }
+    
+    /* Dataframe */
+    .stDataFrame {
+        background: rgba(255,255,255,0.02);
+        border-radius: 16px;
+        border: 1px solid rgba(255,255,255,0.05);
+    }
+    
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+        background: rgba(255,255,255,0.02);
+    }
+    ::-webkit-scrollbar-thumb {
+        background: rgba(78,205,196,0.3);
+        border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: rgba(78,205,196,0.5);
+    }
+    
+    /* Badge */
+    .badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .badge-blockbuster { background: rgba(255,107,107,0.2); color: #FF6B6B; border: 1px solid rgba(255,107,107,0.3); }
+    .badge-high { background: rgba(255,167,38,0.2); color: #FFA726; border: 1px solid rgba(255,167,38,0.3); }
+    .badge-medium { background: rgba(78,205,196,0.2); color: #4ECDC4; border: 1px solid rgba(78,205,196,0.3); }
+    .badge-low { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.2); }
+    
+    /* Loading animation */
+    @keyframes shimmer {
+        0% { background-position: -1000px 0; }
+        100% { background-position: 1000px 0; }
+    }
+    
+    .loading-shimmer {
+        background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 75%);
+        background-size: 1000px 100%;
+        animation: shimmer 2s infinite;
+        border-radius: 12px;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # =========================
-# CARREGAR E PREPROCESSAR DADOS
+# CARREGAMENTO DE DADOS OTIMIZADO
 # =========================
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def carregar_dados():
     CSV_URL = "https://raw.githubusercontent.com/luccasfsilva/projetopy/main/imdb_movies.csv"
     try:
-        # CORRIGIDO: O arquivo pode ter sido renomeado, mas usaremos a URL fornecida
         df = pd.read_csv(CSV_URL, parse_dates=['date_x'])
         
-        # Limpeza e transformação
+        # Limpeza robusta
         df["revenue"] = pd.to_numeric(df.get("revenue"), errors="coerce").fillna(0)
         df["score"] = pd.to_numeric(df.get("score"), errors="coerce")
         df["budget_x"] = pd.to_numeric(df.get("budget_x"), errors="coerce").fillna(0)
         
-        # Extrair ano e mês
         df["ano"] = df["date_x"].dt.year.fillna(0).astype(int)
         df["mes"] = df["date_x"].dt.month.fillna(0).astype(int)
         
-        # Calcular ROI
         df["roi"] = np.where(
             df["budget_x"] > 0,
             (df["revenue"] - df["budget_x"]) / df["budget_x"] * 100,
             0
         )
         
-        # Categorizar sucesso
+        # Categorias de sucesso com percentis dinâmicos
+        q80 = df['revenue'].quantile(0.8)
+        q60 = df['revenue'].quantile(0.6)
+        q40 = df['revenue'].quantile(0.4)
+        
         conditions = [
-            df['revenue'] >= df['revenue'].quantile(0.8),
-            df['revenue'] >= df['revenue'].quantile(0.6),
-            df['revenue'] >= df['revenue'].quantile(0.4),
-            df['revenue'] < df['revenue'].quantile(0.4)
+            df['revenue'] >= q80,
+            df['revenue'] >= q60,
+            df['revenue'] >= q40,
+            df['revenue'] < q40
         ]
         choices = ['Blockbuster', 'High', 'Medium', 'Low']
         df['success_category'] = np.select(conditions, choices, default='Low')
         
+        # Adiciona coluna de década
+        df['decada'] = (df['ano'] // 10) * 10
+        
         return df
     except Exception as e:
-        st.error(f"❌ Erro ao carregar o CSV. Verifique a URL ou a estrutura do arquivo.")
-        st.stop()
+        st.error(f"❌ Erro ao carregar dados: {str(e)}")
+        return None
 
-df = carregar_dados()
-if df is None:
+# Placeholder de loading elegante
+with st.spinner(""):
+    st.markdown("""
+        <div style="text-align: center; padding: 4rem;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">🎬</div>
+            <div style="color: rgba(255,255,255,0.5); font-size: 1.1rem; letter-spacing: 2px;">CARREGANDO CINEANALYTICS</div>
+            <div style="width: 200px; height: 2px; background: rgba(255,255,255,0.1); margin: 1rem auto; border-radius: 2px; overflow: hidden;">
+                <div style="width: 60%; height: 100%; background: linear-gradient(90deg, #4ECDC4, #45B7D1); border-radius: 2px; animation: loading 1.5s ease-in-out infinite;"></div>
+            </div>
+        </div>
+        <style>
+            @keyframes loading { 0% { transform: translateX(-100%); } 100% { transform: translateX(250%); } }
+        </style>
+    """, unsafe_allow_html=True)
+    
+    df = carregar_dados()
+
+if df is None or df.empty:
     st.stop()
 
 # =========================
-# DICIONÁRIO DE TRADUÇÃO DOS FILMES
+# TRADUÇÕES
 # =========================
 TRADUCOES_FILMES = {
-    # Filmes Populares
     "Avatar: The Way of Water": "Avatar: O Caminho da Água",
     "Avengers: Endgame": "Vingadores: Ultimato",
     "Avatar": "Avatar",
@@ -144,8 +375,6 @@ TRADUCOES_FILMES = {
     "Aquaman": "Aquaman",
     "The Lord of the Rings: The Return of the King": "O Senhor dos Anéis: O Retorno do Rei",
     "Spider-Man: Far From Home": "Homem-Aranha: Longe de Casa",
-    
-    # Filmes de Ação e Aventura
     "Transformers: Dark of the Moon": "Transformers: O Lado Oculto da Lua",
     "Skyfall": "007 - Operação Skyfall",
     "Transformers: Age of Extinction": "Transformers: A Era da Extinção",
@@ -159,8 +388,6 @@ TRADUCOES_FILMES = {
     "Jumanji: Welcome to the Jungle": "Jumanji: Bem-vindo à Selva",
     "Justice League": "Liga da Justiça",
     "The Dark Knight": "Batman: O Cavaleiro das Trevas",
-    
-    # Filmes de Animação
     "Finding Dory": "Procurando Dory",
     "Zootopia": "Zootopia: Essa Cidade é o Bicho",
     "Despicable Me 2": "Meu Malvado Favorito 2",
@@ -176,8 +403,6 @@ TRADUCOES_FILMES = {
     "Monsters, Inc.": "Monstros S.A.",
     "Up": "Up: Altas Aventuras",
     "Spider-Man: Into the Spider-Verse": "Homem-Aranha no Aranhaverso",
-    
-    # Filmes Recentes
     "Oppenheimer": "Oppenheimer",
     "Guardians of the Galaxy Vol. 3": "Guardiões da Galáxia Vol. 3",
     "Fast X": "Velozes e Furiosos 10",
@@ -194,8 +419,6 @@ TRADUCOES_FILMES = {
     "Wonka": "Wonka",
     "Aquaman and the Lost Kingdom": "Aquaman e o Reino Perdido",
     "The Hunger Games: The Ballad of Songbirds & Snakes": "Jogos Vorazes: A Cantiga dos Pássaros e das Serpentes",
-    
-    # Filmes Diversos
     "The Lord of the Rings: The Two Towers": "O Senhor dos Anéis: As Duas Torres",
     "The Lord of the Rings: The Fellowship of the Ring": "O Senhor dos Anéis: A Sociedade do Anel",
     "The Matrix Reloaded": "Matrix Reloaded",
@@ -213,8 +436,6 @@ TRADUCOES_FILMES = {
     "The Sound of Music": "A Noviça Rebelde",
     "The Sting": "Um Golpe de Mestre",
     "Butch Cassidy and the Sundance Kid": "Butch Cassidy e o Menino da Lua",
-    
-    # Filmes em Português (manter como estão)
     "Cidade de Deus": "Cidade de Deus",
     "Tropa de Elite": "Tropa de Elite",
     "Central do Brasil": "Central do Brasil",
@@ -222,630 +443,755 @@ TRADUCOES_FILMES = {
     "Lisbela e o Prisioneiro": "Lisbela e o Prisioneiro",
 }
 
-def traduzir_nome_filme(nome_original):
-    if pd.isna(nome_original):
-        return nome_original
-    return TRADUCOES_FILMES.get(nome_original, nome_original)
+def traduzir_nome(nome):
+    if pd.isna(nome):
+        return nome
+    return TRADUCOES_FILMES.get(nome, nome)
 
 # =========================
-# FUNÇÕES DE ANÁLISE DO COLAB (CORRIGIDAS)
-# =========================
-def criar_grafico_top_filmes(df, top_n=10):
-    """Top filmes por receita - Gráfico 1 do Colab"""
-    top_filmes = df.nlargest(top_n, 'revenue')[['names', 'revenue', 'score']].copy()
-    
-    fig = px.bar(
-        top_filmes,
-        x='revenue',
-        y='names',
-        orientation='h',
-        title=f'🏆 Top {top_n} Filmes por Receita',
-        labels={'revenue': 'Receita (USD)', 'names': 'Filme'},
-        color='revenue',
-        color_continuous_scale='viridis',
-        hover_data=['score']
-    )
-    fig.update_layout(
-        yaxis={'categoryorder': 'total ascending'},
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='white'),
-        height=500
-    )
-    return fig
-
-def criar_grafico_dispercao_nota_receita(df):
-    """Relação entre nota e receita - Gráfico 2 do Colab (CORRIGIDO)"""
-    fig = px.scatter(
-        df,
-        x='score',
-        y='revenue',
-        title='🎯 Relação entre Nota e Receita',
-        labels={'score': 'Nota IMDb', 'revenue': 'Receita (USD)'},
-        hover_data=['names'],
-        # Removido trendline que causava o erro
-        color_discrete_sequence=['#FF6B6B']
-    )
-    fig.update_layout(
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='white')
-    )
-    return fig
-
-def criar_grafico_evolucao_receita_anual(df):
-    """Evolução da receita anual - Gráfico 3 do Colab"""
-    receita_anual = df.groupby('ano')['revenue'].sum().reset_index()
-    
-    fig = px.line(
-        receita_anual,
-        x='ano',
-        y='revenue',
-        title='📈 Evolução da Receita Anual da Indústria Cinematográfica',
-        labels={'ano': 'Ano', 'revenue': 'Receita Total (USD)'},
-        markers=True
-    )
-    fig.update_traces(line=dict(color='#4ECDC4', width=3))
-    fig.update_layout(
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='white')
-    )
-    return fig
-
-def criar_grafico_distribuicao_idiomas(df):
-    """Distribuição de idiomas - Gráfico 4 do Colab"""
-    idiomas = df['orig_lang'].value_counts().head(10).reset_index()
-    idiomas.columns = ['Idioma', 'Quantidade']
-    
-    fig = px.pie(
-        idiomas,
-        values='Quantidade',
-        names='Idioma',
-        title='🌎 Distribuição dos Idiomas Originais (Top 10)',
-        hole=0.4,
-        color_discrete_sequence=px.colors.sequential.Plasma
-    )
-    fig.update_layout(
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='white')
-    )
-    return fig
-
-def criar_grafico_filmes_por_ano(df):
-    """Quantidade de filmes por ano - Gráfico 5 do Colab"""
-    filmes_ano = df.groupby('ano').size().reset_index(name='quantidade')
-    
-    fig = px.bar(
-        filmes_ano,
-        x='ano',
-        y='quantidade',
-        title='🎬 Quantidade de Filmes por Ano',
-        labels={'ano': 'Ano', 'quantidade': 'Número de Filmes'},
-        color='quantidade',
-        color_continuous_scale='blues'
-    )
-    fig.update_layout(
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='white'),
-        showlegend=False
-    )
-    return fig
-
-def criar_grafico_media_notas_ano(df):
-    """Média de notas por ano - Gráfico 6 do Colab"""
-    media_notas = df.groupby('ano')['score'].mean().reset_index()
-    
-    fig = px.line(
-        media_notas,
-        x='ano',
-        y='score',
-        title='⭐ Evolução da Média de Notas por Ano',
-        labels={'ano': 'Ano', 'score': 'Nota Média'},
-        markers=True
-    )
-    fig.update_traces(line=dict(color='#FFA726', width=3))
-    fig.update_layout(
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='white')
-    )
-    return fig
-
-def criar_grafico_correlacao(df):
-    """
-    Mapa Mundi de Receita por País. Substitui o mapa de calor de correlações
-    usando a coluna 'country' e o pacote 'pycountry' para códigos ISO3.
-    """
-
-    # Verifica presença da coluna 'country'
-    if "country" not in df.columns or df["country"].isnull().all():
-        st.warning("A coluna 'country' não foi encontrada ou está vazia.")
-        return None
-
-    # Agrega a receita total por país
-    df_country = df.groupby("country")["revenue"].sum().reset_index()
-    df_country.columns = ["country_raw", "value"]
-
-    def iso2_to_iso3(code):
-        """Converte códigos de país ISO2 para ISO3 usando pycountry."""
-        try:
-            if isinstance(code, str) and len(code) == 2:
-                # Tenta converter ISO2 para ISO3
-                return pycountry.countries.get(alpha_2=code.upper()).alpha_3
-            if isinstance(code, str) and len(code) == 3:
-                # Assume que já é ISO3
-                return code.upper()
-        except:
-            pass
-        return None
-
-    df_country["iso3"] = df_country["country_raw"].apply(iso2_to_iso3)
-    df_country = df_country.dropna(subset=["iso3"])
-
-    if df_country.empty:
-        st.warning("Não foi possível gerar o mapa mundi. Verifique os códigos de país (ISO2 ou ISO3) na coluna 'country'.")
-        return None
-
-    # ========== MAPA MUNDI ==========
-    fig = px.choropleth(
-        df_country,
-        locations="iso3",
-        color="value",
-        hover_name="country_raw",
-        color_continuous_scale="Plasma",
-        projection="natural earth",
-        title=f"🌍 Receita Total por País",
-        labels={"value": "Receita Total (USD)"}
-    )
-
-    fig.update_geos(
-        showcountries=True,
-        showcoastlines=True,
-        showland=True,
-        landcolor="#2d2d2d", # Cor escura para o continente
-        oceancolor="#1a1a1a" # Cor escura para o oceano
-    )
-
-    fig.update_layout(
-        margin=dict(r=0, t=50, l=0, b=0),
-        height=520,
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='white')
-    )
-
-    return fig
-
-
-def criar_grafico_decadas(df):
-    """Análise por décadas - Gráfico 8 do Colab"""
-    df_copy = df.copy()
-    df_copy['decada'] = (df_copy['ano'] // 10) * 10
-    decada_stats = df_copy.groupby('decada').agg({
-        'revenue': 'sum', # Alterado para soma para refletir o total da década
-        'score': 'mean',
-        'names': 'count'
-    }).reset_index()
-    
-    # Filtra décadas com dados significativos
-    decada_stats = decada_stats[decada_stats['decada'] > 1900]
-    
-    fig = go.Figure()
-    fig.add_trace(go.Bar(
-        x=decada_stats['decada'],
-        y=decada_stats['names'],
-        name='Número de Filmes',
-        marker_color='#4ECDC4'
-    ))
-    
-    # Normaliza a receita total para o eixo secundário
-    max_names = decada_stats['names'].max() if decada_stats['names'].max() > 0 else 1
-    max_revenue = decada_stats['revenue'].max() if decada_stats['revenue'].max() > 0 else 1
-    
-    fig.add_trace(go.Scatter(
-        x=decada_stats['decada'],
-        y=decada_stats['revenue'] / max_revenue * max_names, # Escala ajustada
-        name='Receita Total (escala ajustada)',
-        line=dict(color='#FF6B6B', width=3),
-        yaxis='y2'
-    ))
-    
-    fig.update_layout(
-        title='📊 Análise por Décadas: Quantidade de Filmes e Receita Total',
-        xaxis_title='Década',
-        yaxis_title='Número de Filmes',
-        yaxis2=dict(
-            title='Receita Total (escala ajustada)',
-            overlaying='y',
-            side='right',
-            range=[0, max_names * 1.05] # Ajusta o limite superior
-        ),
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='white')
-    )
-    return fig
-
-def criar_grafico_sazonalidade(df):
-    """Análise de sazonalidade - Gráfico 9 do Colab"""
-    if 'mes' in df.columns and not df['mes'].isnull().all():
-        sazonalidade = df.groupby('mes').agg({
-            'revenue': 'mean',
-            'score': 'mean',
-            'names': 'count'
-        }).reset_index()
-        
-        meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 
-                 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
-        
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=[meses[m-1] for m in sazonalidade['mes']],
-            y=sazonalidade['revenue'],
-            name='Receita Média',
-            line=dict(color='#4ECDC4', width=3),
-            yaxis='y1'
-        ))
-        fig.add_trace(go.Bar(
-            x=[meses[m-1] for m in sazonalidade['mes']],
-            y=sazonalidade['names'],
-            name='Número de Filmes',
-            marker_color='rgba(255, 107, 107, 0.6)',
-            yaxis='y2'
-        ))
-        
-        fig.update_layout(
-            title='📅 Sazonalidade: Lançamentos e Receita por Mês',
-            xaxis_title='Mês',
-            yaxis_title='Receita Média (USD)',
-            yaxis2=dict(
-                title='Número de Filmes',
-                overlaying='y',
-                side='right'
-            ),
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            font=dict(color='white')
-        )
-        return fig
-    return None
-
-def criar_grafico_orcamento_vs_receita(df):
-    """Relação orçamento vs receita - Gráfico adicional do Colab (CORRIGIDO)"""
-    df_filtrado = df[df['budget_x'] > 0]
-    if len(df_filtrado) > 0:
-        fig = px.scatter(
-            df_filtrado,
-            x='budget_x',
-            y='revenue',
-            title='💰 Relação entre Orçamento e Receita',
-            labels={'budget_x': 'Orçamento (USD)', 'revenue': 'Receita (USD)'},
-            hover_data=['names', 'score'],
-            color_discrete_sequence=['#FFA726']
-        )
-        fig.update_layout(
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            font=dict(color='white')
-        )
-        return fig
-    return None
-
-def criar_grafico_distribuicao_notas(df):
-    """Distribuição de notas - Gráfico adicional do Colab"""
-    fig = px.histogram(
-        df,
-        x='score',
-        nbins=30,
-        title='📊 Distribuição das Notas dos Filmes',
-        labels={'score': 'Nota IMDb', 'count': 'Número de Filmes'},
-        color_discrete_sequence=['#4ECDC4']
-    )
-    fig.update_layout(
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='white'),
-        showlegend=False
-    )
-    return fig
-
-# =========================
-# BARRA LATERAL
+# SIDEBAR MODERNA
 # =========================
 with st.sidebar:
-    st.markdown("<h2 style='text-align: center; color: #4ECDC4;'>🎛️ Painel de Controle</h2>", unsafe_allow_html=True)
+    st.markdown("""
+        <div style="text-align: center; padding: 1rem 0;">
+            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎛️</div>
+            <h2 style="color: #4ECDC4; font-size: 1.2rem; font-weight: 700; margin: 0;">Painel de Controle</h2>
+            <p style="color: rgba(255,255,255,0.4); font-size: 0.8rem; margin-top: 0.3rem;">Filtros Avançados</p>
+        </div>
+    """, unsafe_allow_html=True)
     
     st.markdown("---")
     
-    # Filtro de anos
-    st.markdown("#### 📅 Filtro por Ano")
-    # Filtra anos > 0 para evitar lixo de data
-    anos_disponiveis = sorted(df[df["ano"] > 0]["ano"].unique())
-    if len(anos_disponiveis) > 0:
-        ano_min_default = min(anos_disponiveis)
-        ano_max_default = max(anos_disponiveis)
+    # Filtro de anos com estilo
+    st.markdown("#### 📅 Período")
+    anos_validos = sorted(df[df["ano"] > 0]["ano"].unique())
+    if anos_validos:
         ano_min, ano_max = st.select_slider(
-            "Selecione o intervalo de anos:",
-            options=anos_disponiveis,
-            value=(ano_min_default, ano_max_default)
+            "Intervalo de Anos",
+            options=anos_validos,
+            value=(min(anos_validos), max(anos_validos)),
+            label_visibility="collapsed"
         )
     else:
-        st.warning("Dados de ano inválidos ou incompletos.")
-        ano_min, ano_max = 0, datetime.now().year
-
+        ano_min, ano_max = 1900, datetime.now().year
     
     st.markdown("---")
     
     # Filtro de notas
-    st.markdown("#### ⭐ Filtro por Nota")
+    st.markdown("#### ⭐ Nota IMDb")
     score_min, score_max = st.slider(
-        "Selecione a faixa de notas:",
-        min_value=0.0,
-        max_value=10.0,
-        value=(0.0, 10.0),
-        step=0.1
+        "Faixa de Notas",
+        0.0, 10.0, (0.0, 10.0), 0.1,
+        label_visibility="collapsed"
     )
     
     st.markdown("---")
     
     # Filtro de receita
-    st.markdown("#### 💰 Filtro por Receita")
-    receita_max_global = df["revenue"].max()
+    st.markdown("#### 💰 Receita")
+    max_revenue = float(df["revenue"].max())
     receita_min, receita_max = st.slider(
-        "Selecione a faixa de receita:",
-        min_value=0.0,
-        max_value=float(receita_max_global),
-        value=(0.0, float(receita_max_global)),
-        step=1_000_000.0,
-        format="$%.0f"
+        "Faixa de Receita",
+        0.0, max_revenue, (0.0, max_revenue), 1_000_000.0,
+        format="$%.0f",
+        label_visibility="collapsed"
     )
+    
+    st.markdown("---")
+    
+    # Quick stats na sidebar
+    total_filmes = len(df)
+    st.markdown(f"""
+        <div class="glass-card" style="padding: 1rem; text-align: center;">
+            <div style="font-size: 1.5rem; font-weight: 700; color: #4ECDC4;">{total_filmes:,}</div>
+            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 1px;">Filmes no Dataset</div>
+        </div>
+    """, unsafe_allow_html=True)
 
-# Aplicar filtro principal
+# =========================
+# APLICAR FILTROS
+# =========================
 df_filtrado = df[
-    (df["ano"] >= ano_min) &
-    (df["ano"] <= ano_max) &
-    (df["score"] >= score_min) &
-    (df["score"] <= score_max) &
-    (df["revenue"] >= receita_min) &
-    (df["revenue"] <= receita_max)
+    (df["ano"] >= ano_min) & (df["ano"] <= ano_max) &
+    (df["score"] >= score_min) & (df["score"] <= score_max) &
+    (df["revenue"] >= receita_min) & (df["revenue"] <= receita_max)
 ].copy()
 
-# Aplicar tradução aos nomes dos filmes
-df_filtrado["names"] = df_filtrado["names"].apply(traduzir_nome_filme)
+df_filtrado["names"] = df_filtrado["names"].apply(traduzir_nome)
 
 if df_filtrado.empty:
-    st.error("Nenhum dado encontrado com os filtros selecionados.")
+    st.error("🎭 Nenhum filme encontrado com os filtros selecionados.")
     st.stop()
 
+# =========================
+# HERO SECTION
+# =========================
+st.markdown("""
+    <div class="hero-container">
+        <h1 class="hero-title">🎬 CineAnalytics Pro</h1>
+        <p class="hero-subtitle">Dashboard Inteligente de Análise Cinematográfica</p>
+    </div>
+""", unsafe_allow_html=True)
 
 # =========================
-# CABEÇALHO
+# KPI CARDS MODERNOS
 # =========================
-st.markdown('<h1 class="main-header">🎬 CineAnalytics</h1>', unsafe_allow_html=True)
-st.markdown('<p class="sub-header">Dashboard Completo com Todas as Análises do Colab</p>', unsafe_allow_html=True)
+col1, col2, col3, col4, col5 = st.columns(5)
+
+with col1:
+    receita_total = df_filtrado["revenue"].sum()
+    st.markdown(f"""
+        <div class="glass-card metric-glass">
+            <div class="metric-value">${receita_total/1e9:.1f}B</div>
+            <div class="metric-label">Receita Total</div>
+            <div class="metric-delta" style="color: #4ECDC4;">↗ Global</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+with col2:
+    receita_media = df_filtrado["revenue"].mean()
+    st.markdown(f"""
+        <div class="glass-card metric-glass" style="border-left-color: #FF6B6B;">
+            <div class="metric-value">${receita_media/1e6:.1f}M</div>
+            <div class="metric-label">Receita Média</div>
+            <div class="metric-delta" style="color: #FF6B6B;">por filme</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+with col3:
+    nota_media = df_filtrado["score"].mean()
+    st.markdown(f"""
+        <div class="glass-card metric-glass" style="border-left-color: #FFA726;">
+            <div class="metric-value">{nota_media:.1f}</div>
+            <div class="metric-label">Nota Média</div>
+            <div class="metric-delta" style="color: #FFA726;">IMDb</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+with col4:
+    roi_medio = df_filtrado[df_filtrado["roi"] > 0]["roi"].mean()
+    if pd.isna(roi_medio):
+        roi_medio = 0
+    st.markdown(f"""
+        <div class="glass-card metric-glass" style="border-left-color: #45B7D1;">
+            <div class="metric-value">{roi_medio:.0f}%</div>
+            <div class="metric-label">ROI Médio</div>
+            <div class="metric-delta" style="color: #45B7D1;">retorno</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+with col5:
+    total_filtrado = len(df_filtrado)
+    st.markdown(f"""
+        <div class="glass-card metric-glass" style="border-left-color: #9C27B0;">
+            <div class="metric-value">{total_filtrado}</div>
+            <div class="metric-label">Filmes</div>
+            <div class="metric-delta" style="color: #9C27B0;">selecionados</div>
+        </div>
+    """, unsafe_allow_html=True)
 
 # =========================
-# SISTEMA DE ABAS COM TODOS OS GRÁFICOS DO COLAB
+# FUNÇÕES DE GRÁFICOS MODERNIZADAS
+# =========================
+def tema_moderno(fig, altura=450):
+    """Aplica tema escuro moderno aos gráficos Plotly"""
+    fig.update_layout(
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        font=dict(color='rgba(255,255,255,0.8)', family='Inter, sans-serif', size=12),
+        title_font=dict(size=16, color='white', family='Inter, sans-serif'),
+        legend=dict(
+            bgcolor='rgba(0,0,0,0.3)',
+            bordercolor='rgba(255,255,255,0.1)',
+            borderwidth=1,
+            font=dict(size=11)
+        ),
+        margin=dict(l=60, r=40, t=60, b=40),
+        height=altura,
+        hoverlabel=dict(
+            bgcolor='rgba(20,20,35,0.95)',
+            bordercolor='rgba(78,205,196,0.3)',
+            font=dict(color='white', size=12)
+        )
+    )
+    fig.update_xaxes(
+        showgrid=True, gridwidth=1, gridcolor='rgba(255,255,255,0.05)',
+        showline=True, linewidth=1, linecolor='rgba(255,255,255,0.1)'
+    )
+    fig.update_yaxes(
+        showgrid=True, gridwidth=1, gridcolor='rgba(255,255,255,0.05)',
+        showline=True, linewidth=1, linecolor='rgba(255,255,255,0.1)'
+    )
+    return fig
+
+def grafico_top_filmes(df, top_n=10):
+    top = df.nlargest(top_n, 'revenue')[['names', 'revenue', 'score']].copy()
+    
+    fig = px.bar(
+        top, x='revenue', y='names', orientation='h',
+        color='revenue', color_continuous_scale=['#1a1a2e', '#4ECDC4', '#45B7D1', '#FF6B6B'],
+        hover_data={'names': True, 'revenue': ':$.2s', 'score': ':.1f'}
+    )
+    fig.update_traces(
+        marker_line_width=0,
+        hovertemplate='<b>%{y}</b><br>Receita: %{x:$,.0f}<br>Nota: %{customdata[1]:.1f}<extra></extra>'
+    )
+    fig.update_layout(
+        yaxis=dict(categoryorder='total ascending', title=''),
+        xaxis=dict(title='Receita (USD)', tickformat='$,.0f'),
+        coloraxis_showscale=False
+    )
+    return tema_moderno(fig, 500)
+
+def grafico_evolucao_receita(df):
+    dados = df.groupby('ano')['revenue'].sum().reset_index()
+    dados = dados[dados['ano'] > 0]
+    
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=dados['ano'], y=dados['revenue'],
+        mode='lines+markers',
+        line=dict(color='#4ECDC4', width=3),
+        marker=dict(size=8, color='#4ECDC4', line=dict(width=2, color='rgba(0,0,0,0.5)')),
+        fill='tozeroy',
+        fillcolor='rgba(78,205,196,0.1)',
+        name='Receita Anual'
+    ))
+    fig.update_layout(
+        xaxis_title='Ano',
+        yaxis_title='Receita Total',
+        yaxis_tickformat='$.2s',
+        showlegend=False
+    )
+    return tema_moderno(fig)
+
+def grafico_dispersao_nota_receita(df):
+    amostra = df.sample(min(2000, len(df))) if len(df) > 2000 else df
+    
+    fig = px.scatter(
+        amostra, x='score', y='revenue',
+        color='score', color_continuous_scale=['#FF6B6B', '#FFA726', '#4ECDC4', '#45B7D1'],
+        opacity=0.7,
+        hover_data=['names']
+    )
+    fig.update_traces(
+        marker=dict(size=8, line=dict(width=1, color='rgba(255,255,255,0.3)')),
+        hovertemplate='<b>%{customdata[0]}</b><br>Nota: %{x:.1f}<br>Receita: %{y:$,.0f}<extra></extra>'
+    )
+    fig.update_layout(
+        xaxis_title='Nota IMDb',
+        yaxis_title='Receita (USD)',
+        yaxis_tickformat='$.2s',
+        coloraxis_showscale=True,
+        coloraxis_colorbar=dict(title='Nota', tickformat='.1f')
+    )
+    return tema_moderno(fig)
+
+def grafico_filmes_por_ano(df):
+    dados = df[df['ano'] > 0].groupby('ano').size().reset_index(name='count')
+    
+    fig = px.bar(
+        dados, x='ano', y='count',
+        color='count', color_continuous_scale=['#1a1a2e', '#45B7D1']
+    )
+    fig.update_traces(
+        marker_line_width=0,
+        hovertemplate='Ano: %{x}<br>Filmes: %{y}<extra></extra>'
+    )
+    fig.update_layout(
+        xaxis_title='Ano',
+        yaxis_title='Quantidade',
+        coloraxis_showscale=False
+    )
+    return tema_moderno(fig)
+
+def grafico_media_notas(df):
+    dados = df[df['ano'] > 0].groupby('ano')['score'].mean().reset_index()
+    
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=dados['ano'], y=dados['score'],
+        mode='lines+markers',
+        line=dict(color='#FFA726', width=3),
+        marker=dict(size=6, color='#FFA726'),
+        name='Média de Notas'
+    ))
+    # Linha de tendência
+    if len(dados) > 1:
+        z = np.polyfit(dados['ano'], dados['score'], 1)
+        p = np.poly1d(z)
+        fig.add_trace(go.Scatter(
+            x=dados['ano'], y=p(dados['ano']),
+            mode='lines',
+            line=dict(color='rgba(255,167,38,0.3)', width=2, dash='dash'),
+            name='Tendência'
+        ))
+    fig.update_layout(
+        xaxis_title='Ano',
+        yaxis_title='Nota Média',
+        yaxis_range=[0, 10],
+        showlegend=True
+    )
+    return tema_moderno(fig)
+
+def grafico_idiomas(df):
+    idiomas = df['orig_lang'].value_counts().head(8).reset_index()
+    idiomas.columns = ['Idioma', 'Quantidade']
+    
+    fig = px.pie(
+        idiomas, values='Quantidade', names='Idioma',
+        hole=0.6,
+        color_discrete_sequence=['#4ECDC4', '#45B7D1', '#FF6B6B', '#FFA726', '#9C27B0', '#E91E63', '#00BCD4', '#8BC34A']
+    )
+    fig.update_traces(
+        textposition='outside',
+        textinfo='label+percent',
+        textfont=dict(size=11, color='rgba(255,255,255,0.8)'),
+        hovertemplate='<b>%{label}</b><br>Filmes: %{value}<br>%{percent}<extra></extra>',
+        marker=dict(line=dict(color='rgba(0,0,0,0.3)', width=2))
+    )
+    fig.update_layout(
+        annotations=[dict(text='IDIOMAS', x=0.5, y=0.5, font_size=16, showarrow=False, font_color='rgba(255,255,255,0.5)')],
+        showlegend=False
+    )
+    return tema_moderno(fig, 400)
+
+def grafico_mapa_mundi(df):
+    if "country" not in df.columns or df["country"].isnull().all():
+        return None
+    
+    df_country = df.groupby("country")["revenue"].sum().reset_index()
+    df_country.columns = ["country_raw", "value"]
+    
+    def iso2_to_iso3(code):
+        try:
+            if isinstance(code, str) and len(code) == 2:
+                return pycountry.countries.get(alpha_2=code.upper()).alpha_3
+            if isinstance(code, str) and len(code) == 3:
+                return code.upper()
+        except:
+            pass
+        return None
+    
+    df_country["iso3"] = df_country["country_raw"].apply(iso2_to_iso3)
+    df_country = df_country.dropna(subset=["iso3"])
+    
+    if df_country.empty:
+        return None
+    
+    fig = px.choropleth(
+        df_country, locations="iso3", color="value",
+        hover_name="country_raw", color_continuous_scale="Plasma",
+        projection="natural earth",
+        labels={"value": "Receita"}
+    )
+    fig.update_geos(
+        showcountries=True, showcoastlines=True, showland=True,
+        landcolor="#1a1a2e", oceancolor="#0f0f1a",
+        coastlinecolor="rgba(255,255,255,0.1)", countrycolor="rgba(255,255,255,0.05)"
+    )
+    fig.update_layout(
+        margin=dict(r=0, t=50, l=0, b=0), height=520,
+        coloraxis_colorbar=dict(title='Receita (USD)', tickformat='$.2s')
+    )
+    return tema_moderno(fig)
+
+def grafico_decadas(df):
+    df_temp = df[df['ano'] > 1900].copy()
+    if df_temp.empty:
+        return None
+    
+    stats = df_temp.groupby('decada').agg({
+        'revenue': 'sum', 'score': 'mean', 'names': 'count'
+    }).reset_index()
+    
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    
+    fig.add_trace(go.Bar(
+        x=stats['decada'], y=stats['names'],
+        name='Filmes', marker_color='rgba(78,205,196,0.7)',
+        marker_line_width=0, hovertemplate='Década: %{x}s<br>Filmes: %{y}<extra></extra>'
+    ), secondary_y=False)
+    
+    fig.add_trace(go.Scatter(
+        x=stats['decada'], y=stats['revenue'],
+        name='Receita', mode='lines+markers',
+        line=dict(color='#FF6B6B', width=3),
+        marker=dict(size=8, color='#FF6B6B'),
+        hovertemplate='Década: %{x}s<br>Receita: $%{y:,.0f}<extra></extra>'
+    ), secondary_y=True)
+    
+    fig.update_layout(
+        xaxis_title='Década',
+        yaxis_title='Número de Filmes',
+        yaxis2_title='Receita Total (USD)',
+        yaxis2_tickformat='$.2s',
+        showlegend=True,
+        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1)
+    )
+    return tema_moderno(fig)
+
+def grafico_sazonalidade(df):
+    if 'mes' not in df.columns or df['mes'].isnull().all():
+        return None
+    
+    dados = df[df['mes'] > 0].groupby('mes').agg({
+        'revenue': 'mean', 'names': 'count'
+    }).reset_index()
+    
+    meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+    dados['mes_nome'] = dados['mes'].apply(lambda x: meses[x-1])
+    
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    
+    fig.add_trace(go.Scatter(
+        x=dados['mes_nome'], y=dados['revenue'],
+        name='Receita Média', mode='lines+markers',
+        line=dict(color='#4ECDC4', width=3),
+        marker=dict(size=8),
+        fill='tozeroy', fillcolor='rgba(78,205,196,0.1)',
+        hovertemplate='%{x}<br>Receita Média: $%{y:,.0f}<extra></extra>'
+    ), secondary_y=False)
+    
+    fig.add_trace(go.Bar(
+        x=dados['mes_nome'], y=dados['names'],
+        name='Lançamentos', marker_color='rgba(255,107,107,0.5)',
+        marker_line_width=0,
+        hovertemplate='%{x}<br>Lançamentos: %{y}<extra></extra>'
+    ), secondary_y=True)
+    
+    fig.update_layout(
+        xaxis_title='Mês',
+        yaxis_title='Receita Média (USD)',
+        yaxis_tickformat='$.2s',
+        yaxis2_title='Número de Lançamentos',
+        showlegend=True,
+        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1)
+    )
+    fig.update_xaxes(categoryorder='array', categoryarray=meses)
+    return tema_moderno(fig)
+
+def grafico_orcamento_receita(df):
+    df_temp = df[(df['budget_x'] > 0) & (df['revenue'] > 0)].copy()
+    if len(df_temp) < 10:
+        return None
+    
+    amostra = df_temp.sample(min(1500, len(df_temp))) if len(df_temp) > 1500 else df_temp
+    
+    fig = px.scatter(
+        amostra, x='budget_x', y='revenue',
+        color='score', color_continuous_scale=['#FF6B6B', '#FFA726', '#4ECDC4'],
+        size='score', size_max=15,
+        opacity=0.6,
+        hover_data=['names']
+    )
+    fig.update_traces(
+        marker_line_width=1, marker_line_color='rgba(255,255,255,0.2)',
+        hovertemplate='<b>%{customdata[0]}</b><br>Orçamento: $%{x:,.0f}<br>Receita: $%{y:,.0f}<extra></extra>'
+    )
+    # Linha de break-even
+    max_val = max(amostra['budget_x'].max(), amostra['revenue'].max())
+    fig.add_trace(go.Scatter(
+        x=[0, max_val], y=[0, max_val],
+        mode='lines', line=dict(color='rgba(255,255,255,0.2)', width=2, dash='dash'),
+        name='Break-even', hoverinfo='skip'
+    ))
+    fig.update_layout(
+        xaxis_title='Orçamento (USD)', yaxis_title='Receita (USD)',
+        xaxis_tickformat='$.2s', yaxis_tickformat='$.2s',
+        showlegend=True
+    )
+    return tema_moderno(fig)
+
+def grafico_distribuicao_notas(df):
+    fig = px.histogram(
+        df, x='score', nbins=40,
+        color_discrete_sequence=['#4ECDC4'],
+        marginal='box'
+    )
+    fig.update_traces(
+        marker_line_width=0, opacity=0.8,
+        hovertemplate='Nota: %{x:.1f}<br>Filmes: %{y}<extra></extra>'
+    )
+    fig.update_layout(
+        xaxis_title='Nota IMDb', yaxis_title='Frequência',
+        bargap=0.1
+    )
+    return tema_moderno(fig)
+
+def grafico_roi(df):
+    df_roi = df[(df['roi'] > 0) & (df['budget_x'] > 0) & (df['roi'] < 5000)].nlargest(10, 'roi')
+    if df_roi.empty:
+        return None
+    
+    fig = px.bar(
+        df_roi, x='roi', y='names', orientation='h',
+        color='roi', color_continuous_scale=['#45B7D1', '#4ECDC4', '#FFA726', '#FF6B6B'],
+        hover_data={'names': True, 'roi': ':.0f', 'revenue': ':$.2s'}
+    )
+    fig.update_traces(
+        marker_line_width=0,
+        hovertemplate='<b>%{y}</b><br>ROI: %{x:.0f}%<extra></extra>'
+    )
+    fig.update_layout(
+        yaxis=dict(categoryorder='total ascending', title=''),
+        xaxis=dict(title='ROI (%)'),
+        coloraxis_showscale=False
+    )
+    return tema_moderno(fig, 400)
+
+def grafico_sucesso(df):
+    dist = df['success_category'].value_counts()
+    cores = {'Blockbuster': '#FF6B6B', 'High': '#FFA726', 'Medium': '#4ECDC4', 'Low': 'rgba(255,255,255,0.3)'}
+    
+    fig = go.Figure()
+    for cat in ['Blockbuster', 'High', 'Medium', 'Low']:
+        if cat in dist:
+            fig.add_trace(go.Bar(
+                x=[cat], y=[dist[cat]],
+                marker_color=cores[cat],
+                name=cat,
+                text=[f"{dist[cat]} ({dist[cat]/dist.sum()*100:.1f}%)"],
+                textposition='outside',
+                textfont=dict(color='white', size=12),
+                hovertemplate=f'<b>{cat}</b><br>Filmes: %{{y}}<extra></extra>'
+            ))
+    fig.update_layout(
+        xaxis_title='Categoria', yaxis_title='Número de Filmes',
+        showlegend=False, bargap=0.4
+    )
+    return tema_moderno(fig, 400)
+
+# =========================
+# TABS MODERNAS
 # =========================
 tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
-    "🏆 Top Filmes", 
-    "📈 Tendências Temporais", 
-    "🎯 Relações e Correlações",
-    "🌎 Distribuições",
-    "📊 Análise Financeira",
-    "📅 Sazonalidade",
-    "🔍 Dados Completos"
+    "🏆 Destaques", "📈 Tendências", "🎯 Correlações",
+    "🌎 Distribuição", "💰 Financeiro", "📅 Sazonalidade", "🔍 Dados"
 ])
 
 with tab1:
-    st.markdown('<div class="section-header">🏆 Análise dos Filmes Mais Populares</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">🏆 Filmes em Destaque</div>', unsafe_allow_html=True)
     
-    col1, col2 = st.columns(2)
+    c1, c2 = st.columns([1.2, 1])
+    with c1:
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+        top_n = st.slider("Quantidade no ranking", 5, 20, 10, key="top_n")
+        st.plotly_chart(grafico_top_filmes(df_filtrado, top_n), use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
     
-    with col1:
-        st.markdown("#### Top Filmes por Receita")
-        top_n = st.slider("Número de filmes:", 5, 20, 10, key="top_n")
-        fig_top = criar_grafico_top_filmes(df_filtrado, top_n)
-        st.plotly_chart(fig_top, use_container_width=True)
-    
-    with col2:
-        st.markdown("#### Distribuição de Notas")
-        fig_dist_notas = criar_grafico_distribuicao_notas(df_filtrado)
-        st.plotly_chart(fig_dist_notas, use_container_width=True)
+    with c2:
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+        st.plotly_chart(grafico_distribuicao_notas(df_filtrado), use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Top ROI mini-card
+        st.markdown('<div class="glass-card" style="margin-top: 1rem;">', unsafe_allow_html=True)
+        st.markdown("**📈 Maior ROI do Período**")
+        if not df_filtrado[(df_filtrado['roi'] > 0)].empty:
+            top_roi = df_filtrado[df_filtrado['roi'] > 0].nlargest(1, 'roi').iloc[0]
+            st.markdown(f"""
+                <div style="display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem;">
+                    <div style="font-size: 2rem;">🥇</div>
+                    <div>
+                        <div style="font-weight: 600; color: white;">{top_roi['names']}</div>
+                        <div style="color: #4ECDC4; font-size: 1.2rem; font-weight: 700;">{top_roi['roi']:.0f}% ROI</div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
 with tab2:
-    st.markdown('<div class="section-header">📈 Análise Temporal e Evolução</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">📈 Análise Temporal</div>', unsafe_allow_html=True)
     
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("#### Evolução da Receita Anual")
-        fig_evolucao_receita = criar_grafico_evolucao_receita_anual(df_filtrado)
-        st.plotly_chart(fig_evolucao_receita, use_container_width=True)
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+        st.plotly_chart(grafico_evolucao_receita(df_filtrado), use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
         
-        st.markdown("#### Quantidade de Filmes por Ano")
-        fig_filmes_ano = criar_grafico_filmes_por_ano(df_filtrado)
-        st.plotly_chart(fig_filmes_ano, use_container_width=True)
+        st.markdown('<div class="glass-card" style="margin-top: 1rem;">', unsafe_allow_html=True)
+        st.plotly_chart(grafico_filmes_por_ano(df_filtrado), use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
     
-    with col2:
-        st.markdown("#### Evolução das Notas Médias")
-        fig_media_notas = criar_grafico_media_notas_ano(df_filtrado)
-        st.plotly_chart(fig_media_notas, use_container_width=True)
+    with c2:
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+        st.plotly_chart(grafico_media_notas(df_filtrado), use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
         
-        st.markdown("#### Análise por Décadas")
-        fig_decadas = criar_grafico_decadas(df_filtrado)
-        st.plotly_chart(fig_decadas, use_container_width=True)
+        st.markdown('<div class="glass-card" style="margin-top: 1rem;">', unsafe_allow_html=True)
+        fig_dec = grafico_decadas(df_filtrado)
+        if fig_dec:
+            st.plotly_chart(fig_dec, use_container_width=True)
+        else:
+            st.info("Dados insuficientes para análise por décadas")
+        st.markdown('</div>', unsafe_allow_html=True)
 
 with tab3:
-    st.markdown('<div class="section-header">🎯 Relações entre Variáveis</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">🎯 Correlações entre Variáveis</div>', unsafe_allow_html=True)
     
-    col1, col2 = st.columns(2)
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+        st.plotly_chart(grafico_dispersao_nota_receita(df_filtrado), use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Insight card
+        corr = df_filtrado[['score', 'revenue']].corr().iloc[0,1]
+        st.markdown(f"""
+            <div class="glass-card" style="margin-top: 1rem; border-left: 3px solid #4ECDC4;">
+                <div style="font-size: 0.85rem; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 1px;">Correlação Nota × Receita</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #4ECDC4; margin-top: 0.3rem;">{corr:.3f}</div>
+                <div style="font-size: 0.8rem; color: rgba(255,255,255,0.4); margin-top: 0.3rem;">
+                    {'Forte correlação positiva' if corr > 0.5 else 'Correlação moderada' if corr > 0.3 else 'Correlação fraca'}
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
     
-    with col1:
-        st.markdown("#### Nota vs Receita")
-        fig_dispersao = criar_grafico_dispercao_nota_receita(df_filtrado)
-        if fig_dispersao:
-            st.plotly_chart(fig_dispersao, use_container_width=True)
+    with c2:
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+        fig_orc = grafico_orcamento_receita(df_filtrado)
+        if fig_orc:
+            st.plotly_chart(fig_orc, use_container_width=True)
         else:
-            st.info("Não há dados suficientes para este gráfico")
-    
-    with col2:
-        st.markdown("#### Orçamento vs Receita")
-        fig_orcamento_receita = criar_grafico_orcamento_vs_receita(df_filtrado)
-        if fig_orcamento_receita:
-            st.plotly_chart(fig_orcamento_receita, use_container_width=True)
-        else:
-            st.info("Não há dados de orçamento suficientes")
+            st.info("Dados de orçamento insuficientes")
+        st.markdown('</div>', unsafe_allow_html=True)
 
 with tab4:
-    st.markdown('<div class="section-header">🌎 Distribuições e Categorias</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">🌎 Distribuições Globais</div>', unsafe_allow_html=True)
     
-    col1, col2 = st.columns(2)
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+        st.plotly_chart(grafico_idiomas(df_filtrado), use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
     
-    with col1:
-        st.markdown("#### Distribuição de Idiomas")
-        fig_idiomas = criar_grafico_distribuicao_idiomas(df_filtrado)
-        st.plotly_chart(fig_idiomas, use_container_width=True)
+    with c2:
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+        st.plotly_chart(grafico_sucesso(df_filtrado), use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
     
-    with col2:
-        st.markdown("#### Categorias de Sucesso")
-        success_dist = df_filtrado['success_category'].value_counts()
-        if len(success_dist) > 0:
-            fig_success = px.pie(
-                values=success_dist.values,
-                names=success_dist.index,
-                title="Distribuição por Categoria de Sucesso",
-                hole=0.4,
-                color_discrete_sequence=px.colors.qualitative.Set3
-            )
-            fig_success.update_layout(
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                font=dict(color='white')
-            )
-            st.plotly_chart(fig_success, use_container_width=True)
-        else:
-            st.info("Não há dados para categorias de sucesso")
-            
-    st.markdown("---")
-    st.markdown("#### Distribuição Geográfica de Receita")
-    # Usando a função criar_grafico_correlacao para o Mapa Mundi
-    fig_mapa = criar_grafico_correlacao(df_filtrado)
+    st.markdown('<div class="glass-card" style="margin-top: 1rem;">', unsafe_allow_html=True)
+    fig_mapa = grafico_mapa_mundi(df_filtrado)
     if fig_mapa:
         st.plotly_chart(fig_mapa, use_container_width=True)
     else:
-        st.info("O mapa mundi não pôde ser gerado. Verifique a coluna 'country'.")
+        st.info("Mapa mundi indisponível para os dados selecionados")
+    st.markdown('</div>', unsafe_allow_html=True)
 
 with tab5:
-    st.markdown('<div class="section-header">📊 Análise Financeira Detalhada</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">💰 Análise Financeira</div>', unsafe_allow_html=True)
     
-    col1, col2 = st.columns(2)
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+        st.plotly_chart(grafico_roi(df_filtrado), use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Cards financeiros detalhados
+        orc_medio = df_filtrado[df_filtrado["budget_x"] > 0]["budget_x"].mean()
+        lucro_medio = (df_filtrado["revenue"] - df_filtrado["budget_x"]).mean()
+        
+        st.markdown(f"""
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+                <div class="glass-card" style="border-left: 3px solid #45B7D1;">
+                    <div style="font-size: 0.75rem; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 1px;">Orçamento Médio</div>
+                    <div style="font-size: 1.3rem; font-weight: 700; color: white; margin-top: 0.3rem;">${orc_medio/1e6:.1f}M</div>
+                </div>
+                <div class="glass-card" style="border-left: 3px solid #4ECDC4;">
+                    <div style="font-size: 0.75rem; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 1px;">Lucro Médio</div>
+                    <div style="font-size: 1.3rem; font-weight: 700; color: #4ECDC4; margin-top: 0.3rem;">${lucro_medio/1e6:.1f}M</div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
     
-    with col1:
-        # Métricas financeiras
-        if not df_filtrado.empty:
-            receita_total = df_filtrado["revenue"].sum()
-            receita_media = df_filtrado["revenue"].mean()
-            roi_medio = df_filtrado["roi"].mean()
-            orcamento_medio = df_filtrado[df_filtrado["budget_x"] > 0]["budget_x"].mean()
-            
-            st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-            st.metric("💰 Receita Total", f"${receita_total:,.0f}")
-            st.metric("📊 Receita Média", f"${receita_media:,.0f}")
-            st.metric("📈 ROI Médio", f"{roi_medio:.1f}%")
-            st.metric("💸 Orçamento Médio", f"${orcamento_medio:,.0f}" if not pd.isna(orcamento_medio) else "N/A")
-            st.markdown('</div>', unsafe_allow_html=True)
-
-        else:
-            st.info("Não há dados financeiros disponíveis")
-    
-    with col2:
-        st.markdown("#### Top Filmes por ROI")
-        # Filtra filmes com ROI > 0 e orçamento > 0 para evitar distorções
-        df_roi = df_filtrado[(df_filtrado['roi'] > 0) & (df_filtrado['budget_x'] > 0)].nlargest(10, 'roi')
-        if not df_roi.empty:
-            fig_roi = px.bar(
-                df_roi,
-                x='roi',
-                y='names',
-                orientation='h',
-                title='📈 Top Filmes por ROI',
-                labels={'roi': 'ROI (%)', 'names': 'Filme'},
-                color='roi',
-                color_continuous_scale='viridis'
-            )
-            fig_roi.update_layout(
-                yaxis={'categoryorder': 'total ascending'},
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                font=dict(color='white'),
-                height=400
-            )
-            st.plotly_chart(fig_roi, use_container_width=True)
-        else:
-            st.info("Não há dados de ROI positivos disponíveis")
+    with c2:
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+        # Tabela de top blockbusters
+        st.markdown("**🏆 Top Blockbusters**")
+        top_block = df_filtrado[df_filtrado['success_category'] == 'Blockbuster'].nlargest(5, 'revenue')[['names', 'revenue', 'score', 'roi']]
+        top_block['revenue'] = top_block['revenue'].apply(lambda x: f"${x/1e6:.0f}M")
+        top_block['roi'] = top_block['roi'].apply(lambda x: f"{x:.0f}%")
+        top_block.columns = ['Filme', 'Receita', 'Nota', 'ROI']
+        st.dataframe(top_block, use_container_width=True, hide_index=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
 with tab6:
-    st.markdown('<div class="section-header">📅 Análise de Sazonalidade</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">📅 Sazonalidade</div>', unsafe_allow_html=True)
     
-    fig_sazonalidade = criar_grafico_sazonalidade(df_filtrado)
-    if fig_sazonalidade:
-        st.plotly_chart(fig_sazonalidade, use_container_width=True)
+    fig_saz = grafico_sazonalidade(df_filtrado)
+    if fig_saz:
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+        st.plotly_chart(fig_saz, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
     else:
-        st.info("Dados de sazonalidade não disponíveis (verifique a coluna 'date_x')")
+        st.info("Dados de sazonalidade indisponíveis")
     
-    # Análise adicional de meses
-    if 'mes' in df_filtrado.columns:
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            meses_ordenados = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 
-                               'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
-            # CORREÇÃO: Usar a coluna 'mes' para agrupar, mas usar o mapeamento para Plotly
-            receita_mensal = df_filtrado.groupby('mes')['revenue'].mean().reset_index()
+    # Insights de sazonalidade
+    if 'mes' in df_filtrado.columns and not df_filtrado['mes'].isnull().all():
+        meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+        rec_mes = df_filtrado[df_filtrado['mes'] > 0].groupby('mes')['revenue'].mean()
+        if not rec_mes.empty:
+            melhor_mes = meses[rec_mes.idxmax()-1]
+            pior_mes = meses[rec_mes.idxmin()-1]
             
-            if len(receita_mensal) > 0:
-                fig_mensal = px.bar(
-                    receita_mensal,
-                    x=receita_mensal['mes'].apply(lambda x: meses_ordenados[x-1]),
-                    y='revenue',
-                    title='💰 Receita Média por Mês',
-                    labels={'x': 'Mês', 'revenue': 'Receita Média'},
-                    color='revenue',
-                    color_continuous_scale='blues'
-                )
-                fig_mensal.update_layout(
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    font=dict(color='white'),
-                    xaxis={'categoryorder':'array', 'categoryarray': meses_ordenados} # Ordena os meses
-                )
-                st.plotly_chart(fig_mensal, use_container_width=True)
-        
-        with col2:
-            filmes_mensal = df_filtrado.groupby('mes').size().reset_index(name='count')
-            
-            if len(filmes_mensal) > 0:
-                fig_count_mensal = px.bar(
-                    filmes_mensal,
-                    x=filmes_mensal['mes'].apply(lambda x: meses_ordenados[x-1]),
-                    y='count',
-                    title='🎬 Número de Filmes por Mês',
-                    labels={'x': 'Mês', 'count': 'Número de Filmes'},
-                    color='count',
-                    color_continuous_scale='greens'
-                )
-                fig_count_mensal.update_layout(
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    font=dict(color='white'),
-                    xaxis={'categoryorder':'array', 'categoryarray': meses_ordenados} # Ordena os meses
-                )
-                st.plotly_chart(fig_count_mensal, use_container_width=True)
-                
+            c1, c2 = st.columns(2)
+            with c1:
+                st.markdown(f"""
+                    <div class="glass-card" style="border-left: 3px solid #4ECDC4;">
+                        <div style="font-size: 0.8rem; color: rgba(255,255,255,0.5);">Melhor Mês para Receita</div>
+                        <div style="font-size: 2rem; font-weight: 700; color: #4ECDC4;">{melhor_mes}</div>
+                        <div style="font-size: 0.9rem; color: rgba(255,255,255,0.6);">${rec_mes.max()/1e6:.1f}M média</div>
+                    </div>
+                """, unsafe_allow_html=True)
+            with c2:
+                st.markdown(f"""
+                    <div class="glass-card" style="border-left: 3px solid #FF6B6B;">
+                        <div style="font-size: 0.8rem; color: rgba(255,255,255,0.5);">Pior Mês para Receita</div>
+                        <div style="font-size: 2rem; font-weight: 700; color: #FF6B6B;">{pior_mes}</div>
+                        <div style="font-size: 0.9rem; color: rgba(255,255,255,0.6);">${rec_mes.min()/1e6:.1f}M média</div>
+                    </div>
+                """, unsafe_allow_html=True)
+
 with tab7:
     st.markdown('<div class="section-header">🔍 Dados Completos</div>', unsafe_allow_html=True)
-    st.dataframe(df_filtrado)
+    
+    # Filtro de colunas
+    col_vis = st.multiselect(
+        "Colunas visíveis",
+        options=df_filtrado.columns.tolist(),
+        default=['names', 'date_x', 'score', 'revenue', 'budget_x', 'roi', 'success_category', 'orig_lang']
+    )
+    
+    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+    st.dataframe(
+        df_filtrado[col_vis],
+        use_container_width=True,
+        height=600,
+        column_config={
+            "revenue": st.column_config.NumberColumn("Receita", format="$%.0f"),
+            "budget_x": st.column_config.NumberColumn("Orçamento", format="$%.0f"),
+            "roi": st.column_config.NumberColumn("ROI", format="%.1f%%"),
+            "score": st.column_config.NumberColumn("Nota", format="%.1f ⭐"),
+            "success_category": st.column_config.TextColumn("Sucesso"),
+            "names": st.column_config.TextColumn("Filme", width="large")
+        }
+    )
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Download
+    csv = df_filtrado.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        "⬇️ Download CSV Filtrado",
+        csv,
+        f"cineanalytics_{ano_min}-{ano_max}.csv",
+        "text/csv",
+        use_container_width=True
+    )
+
+# Footer
+st.markdown("""
+    <div style="text-align: center; padding: 3rem 1rem 1rem; color: rgba(255,255,255,0.3); font-size: 0.8rem; letter-spacing: 1px;">
+        CINEANALYTICS PRO • DASHBOARD INTERATIVO • 2026
+    </div>
+""", unsafe_allow_html=True)
